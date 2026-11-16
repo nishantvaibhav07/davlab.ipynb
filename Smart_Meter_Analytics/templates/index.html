@@ -1,0 +1,389 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#090f1e">
+
+    <title>Smart Meter Analytics | Data Analytics & Visualization</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+
+<body>
+<div class="app-shell">
+
+    <!-- HEADER -->
+    <header class="topbar">
+        <a class="brand" href="#">
+            <div class="brand-icon">S<span>●</span></div>
+            <div>
+                <div class="brand-name">SMART METER <span>ANALYTICS</span></div>
+                <div class="brand-caption">DATA ANALYTICS &amp; VISUALIZATION</div>
+            </div>
+        </a>
+
+        <div class="header-actions">
+            <span class="live-indicator">
+                <i></i> DATA DASHBOARD
+            </span>
+
+            <button id="themeToggle" class="icon-button"
+                    type="button" title="Toggle light/dark theme"
+                    aria-label="Toggle theme">☼</button>
+
+            <button id="exportButton" class="primary-button"
+                    type="button">↓ Export CSV</button>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-copy">
+            <div class="eyebrow">
+                <span class="eyebrow-line"></span>
+                DATA-DRIVEN DECISIONS
+            </div>
+
+            <h1>Smart Meter Analytics<span>.</span></h1>
+
+            <p>
+                Explore public discussion about smart meters through
+                sentiment analysis, platform comparisons, country-level
+                insights, monthly trends and hashtag engagement.
+            </p>
+
+            <div class="hero-meta">
+                <span>◇ Sentiment Analysis</span>
+                <span>◇ Country Insights</span>
+                <span>◇ Engagement Analysis</span>
+            </div>
+        </div>
+
+        <div class="hero-orbit" aria-hidden="true">
+            <div class="orbit orbit-one"></div>
+            <div class="orbit orbit-two"></div>
+            <div class="orbit-core">SM</div>
+            <div class="orbit-dot dot-one"></div>
+            <div class="orbit-dot dot-two"></div>
+            <div class="orbit-dot dot-three"></div>
+        </div>
+    </section>
+
+    <!-- DATA UPLOAD -->
+    <section class="panel upload-panel">
+        <div class="section-heading compact-heading">
+            <div>
+                <div class="chart-number">01 / DATA SOURCE</div>
+                <h2>Dataset Management</h2>
+                <p class="section-note">
+                    Upload the cleaned CSV used for your project.
+                </p>
+            </div>
+        </div>
+
+        <form action="{{ url_for('upload_dataset') }}"
+              method="POST" enctype="multipart/form-data"
+              class="upload-form">
+
+            <label class="file-picker" for="datasetFile">
+                <span class="upload-symbol">↑</span>
+                <span>
+                    <strong id="fileName">Choose a CSV dataset</strong>
+                    <small>CSV format · Columns for sentiment, platform and country</small>
+                </span>
+            </label>
+
+            <input id="datasetFile" type="file" name="dataset"
+                   accept=".csv,text/csv" required>
+
+            <button type="submit" class="primary-button">
+                Upload Dataset
+            </button>
+        </form>
+
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <div id="dataStatus" class="status-text" aria-live="polite">
+            Loading dataset...
+        </div>
+    </section>
+
+    <!-- FILTERS -->
+    <section class="panel toolbar">
+        <div class="section-heading compact-heading">
+            <div>
+                <div class="chart-number">02 / FILTERS</div>
+                <h2>Explore the Data</h2>
+            </div>
+
+            <button id="resetFilters" class="secondary-button"
+                    type="button">↺ Reset filters</button>
+        </div>
+
+        <div class="filter-grid">
+            <label class="filter-field">
+                <span>Date / Month</span>
+                <select id="monthFilter">
+                    <option value="All">All months</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Country</span>
+                <select id="countryFilter">
+                    <option value="All">All countries</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Platform</span>
+                <select id="platformFilter">
+                    <option value="All">All platforms</option>
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Sentiment</span>
+                <select id="sentimentFilter">
+                    <option value="All">All sentiments</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="filter-footer">
+            <span id="filterSummary" class="status-text">
+                Preparing analysis...
+            </span>
+            <span class="status-text">
+                All charts and KPIs respond to the selected filters.
+            </span>
+        </div>
+    </section>
+
+    <!-- KPI CARDS -->
+    <div class="section-heading">
+        <div>
+            <div class="chart-number">03 / PERFORMANCE OVERVIEW</div>
+            <h2>Dashboard KPIs</h2>
+        </div>
+        <span class="section-note">Calculated from the current view</span>
+    </div>
+
+    <section class="kpi-grid">
+        <article class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">TOTAL POSTS</span>
+                <span class="kpi-icon blue">▤</span>
+            </div>
+            <div id="kpiPosts" class="kpi-value">—</div>
+            <div class="kpi-foot">Posts in the current view</div>
+            <div class="kpi-accent blue-accent"></div>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">POSITIVE POSTS</span>
+                <span class="kpi-icon green">↗</span>
+            </div>
+            <div id="kpiPositive" class="kpi-value">—</div>
+            <div id="kpiPositiveFoot" class="kpi-foot">
+                Positive sentiment percentage
+            </div>
+            <div class="kpi-accent green-accent"></div>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">TOTAL LIKES</span>
+                <span class="kpi-icon purple">♥</span>
+            </div>
+            <div id="kpiLikes" class="kpi-value">—</div>
+            <div class="kpi-foot">Likes in the current view</div>
+            <div class="kpi-accent purple-accent"></div>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">TOTAL RETWEETS</span>
+                <span class="kpi-icon orange">⟳</span>
+            </div>
+            <div id="kpiRetweets" class="kpi-value">—</div>
+            <div class="kpi-foot">Retweets in the current view</div>
+            <div class="kpi-accent orange-accent"></div>
+        </article>
+
+        <article class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-label">TOTAL ENGAGEMENT</span>
+                <span class="kpi-icon blue">◎</span>
+            </div>
+            <div id="kpiEngagement" class="kpi-value">—</div>
+            <div class="kpi-foot">Likes + retweets</div>
+            <div class="kpi-accent blue-accent"></div>
+        </article>
+    </section>
+
+    <!-- VISUALIZATIONS -->
+    <div class="section-heading">
+        <div>
+            <div class="chart-number">04 / DATA VISUALIZATION</div>
+            <h2>Discussion &amp; Engagement Analysis</h2>
+        </div>
+        <span class="section-note">Hover over charts for details</span>
+    </div>
+
+    <section class="chart-grid">
+
+        <!-- 1. SENTIMENT -->
+        <article class="chart-card">
+            <div class="chart-heading">
+                <div>
+                    <div class="chart-number">01 / SENTIMENT</div>
+                    <h3>Sentiment Distribution</h3>
+                    <p>Positive, negative and neutral posts</p>
+                </div>
+                <div class="chart-icon">◔</div>
+            </div>
+            <div id="sentimentChart" class="chart-area"></div>
+        </article>
+
+        <!-- 2. PLATFORM -->
+        <article class="chart-card">
+            <div class="chart-heading">
+                <div>
+                    <div class="chart-number">02 / PLATFORMS</div>
+                    <h3>Platform-wise Sentiment</h3>
+                    <p>Compare sentiment across social platforms</p>
+                </div>
+                <div class="chart-icon">▥</div>
+            </div>
+            <div id="platformChart" class="chart-area"></div>
+        </article>
+
+        <!-- 3. MONTHLY -->
+        <article class="chart-card">
+            <div class="chart-heading">
+                <div>
+                    <div class="chart-number">03 / TIME ANALYSIS</div>
+                    <h3>Monthly Discussion Trend</h3>
+                    <p>Number of posts recorded each month</p>
+                </div>
+                <div class="chart-icon">⌁</div>
+            </div>
+            <div id="monthlyChart" class="chart-area"></div>
+        </article>
+
+        <!-- 4. COUNTRY SENTIMENT MAP -->
+        <article class="chart-card">
+            <div class="chart-heading">
+                <div>
+                    <div class="chart-number">04 / GLOBAL VIEW</div>
+                    <h3>Country-wise Sentiment</h3>
+                    <p>Hover over a country for sentiment and engagement details</p>
+                </div>
+                <div class="chart-icon">◎</div>
+            </div>
+
+            <div id="countryChart" class="map-area"></div>
+
+            <div class="map-hint">
+                Click a country to filter the dashboard. Double-click the
+                country or reset filters to return to the full dataset.
+            </div>
+        </article>
+
+        <!-- 5. HASHTAGS -->
+        <article class="chart-card chart-wide">
+            <div class="chart-heading">
+                <div>
+                    <div class="chart-number">05 / TOPICS</div>
+                    <h3>Hashtag Engagement</h3>
+                    <p>Top hashtags ranked by average engagement per post</p>
+                </div>
+                <div class="chart-icon">#</div>
+            </div>
+            <div id="hashtagChart" class="chart-area short-chart"></div>
+        </article>
+    </section>
+
+    <!-- DETAIL TABLE -->
+    <div class="section-heading">
+        <div>
+            <div class="chart-number">05 / RECORD EXPLORER</div>
+            <h2>Detailed Post Table</h2>
+        </div>
+        <span id="tableCount" class="section-note">0 records</span>
+    </div>
+
+    <section class="panel table-panel">
+        <div class="table-toolbar">
+            <input id="tableSearch" type="search"
+                   placeholder="Search text, country, platform, hashtag..."
+                   aria-label="Search posts">
+
+            <select id="pageSize" aria-label="Rows per page">
+                <option value="10">10 rows</option>
+                <option value="25">25 rows</option>
+                <option value="50">50 rows</option>
+            </select>
+        </div>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Country</th>
+                        <th>Platform</th>
+                        <th>Sentiment</th>
+                        <th>Hashtags</th>
+                        <th>Likes</th>
+                        <th>Retweets</th>
+                        <th>Engagement</th>
+                        <th>Post text</th>
+                    </tr>
+                </thead>
+                <tbody id="postsTableBody">
+                    <tr>
+                        <td colspan="9">Loading records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <button id="previousPage" class="secondary-button"
+                    type="button">← Previous</button>
+            <span id="pageInfo" class="status-text">Page 1</span>
+            <button id="nextPage" class="secondary-button"
+                    type="button">Next →</button>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="brand-name">SMART METER <span>ANALYTICS</span></div>
+        <p>Data Analytics &amp; Visualization · Project 26</p>
+        <p class="footer-small">
+            This project analyzes social-media discussion about smart meters.
+            It does not measure actual household electricity consumption.
+        </p>
+    </footer>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
